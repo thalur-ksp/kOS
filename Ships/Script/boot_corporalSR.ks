@@ -1,0 +1,12 @@
+// Tiny Tim/WAC Corporal
+
+
+WAIT 5.
+
+STAGE.
+WAIT 0.0001.
+WAIT UNTIL MAXTHRUST < 90.
+STAGE.
+WAIT 0.0001.
+WAIT UNTIL VerticalSpeed < 0.
+STAGE.
