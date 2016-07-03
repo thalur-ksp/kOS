@@ -52,6 +52,7 @@ abortController["SetAbortMode"]("rsd").
 GLOBAL recordLogs is true.
 GLOBAL showDebugInfo is true.
 GLOBAL LaunchCompleteCallback is "null".
+GLOBAL window is "null".
 
 LoadAndRun(missionFile, launchFile).
 

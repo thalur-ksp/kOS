@@ -70,6 +70,12 @@ FUNCTION NewIterativeGuidance
         
         RETURN LIST(LOOKDIRUP(pointDir, upDir), 1).
     }
+    
+    functionLex:Add("T2", GetT2@).
+    function GetT2
+    {
+        return T2prime.
+    }
 
     FUNCTION CalculateFromCurrentState
     {
@@ -292,6 +298,15 @@ FUNCTION NewIterativeGuidance
         }
 
         SET T2 TO T2prime + deltaT2.			// 56
+        
+        // prevent error taking ln of -ve number
+        IF T2 >= tau2
+        {
+            PRINT beep.
+            PRINT "!T2 >= tau2     " at(25,16).
+            SET T2 TO tau2 - (TNow - TLast).
+        }
+        
         SET lnTau2T2 TO ln(tau2/(tau2-T2)).
         
         // 6: Calculate chiTilde and psiTilde
@@ -331,11 +346,10 @@ FUNCTION NewIterativeGuidance
             SET K2 TO (A1*K1)/B1.						// 42
             
             
-            //SET cpsi TO CalcPsi(zeta1, zetaDot1, T1+T2, psiTilde, ss_a_dt2).
-            set cpsi to CalcPsi2(zeta1, zetaDot1, psiTilde,
-                                 tau1, tau2, lnTau1T1, lnTau2T2, Vex1, Vex2,
-                                 T1, T2, TNow, TLast,
-                                 s_a_dt, s_at_dt, ss_a_dt2, ss_at_dt2).
+            set cpsi to CalcPsi(zeta1, zetaDot1, psiTilde,
+                                tau1, tau2, lnTau1T1, lnTau2T2, Vex1, Vex2,
+                                T1, T2, TNow, TLast,
+                                s_a_dt, s_at_dt, ss_a_dt2, ss_at_dt2).
 
             PRINT "cpsi: "+round(cpsi*r2d, 2)+"    " at (10,15).
             
@@ -360,31 +374,8 @@ FUNCTION NewIterativeGuidance
 
         RETURN LIST(clamp(chi*r2d,-90, 90), T2, phi*r2d, psi*r2d, debugValues).
     }
-
-    FUNCTION CalcPsi
-    {
-        PARAMETER zeta1, zetaDot1, T, psiTilde, ss_a_dt2.
-        
-        LOCAL vVal IS psiTilde.
-        LOCAL staticDisp IS zeta1 + zetaDot1 * T.
-        LOCAL rVal IS arcsinRad(mod(-staticDisp/ss_a_dt2,360)).
-        
-        PRINT " rVal: "+round(rVal*r2d,4)+"   " at (22,46).
-        PRINT " vVal: "+round(vVal*r2d,4)+"    " at (38,46).
-        
-        // When position error is decreasing, steer to zero out the velocity
-        // otherwise steer to get the position error under control
-        //TODO: this logic may be wrong
-        IF (sign(zeta1) <> sign(zetaDot1))
-        {
-            PRINT "*" at (38,46).
-            RETURN vVal.
-        }
-        PRINT "+" at (22,46).
-        RETURN rVal.
-    }
     
-    function CalcPsi2
+    function CalcPsi
     {
         parameter zeta1, zetaDot1, psiTilde.
         parameter tau1, tau2, lnTau1T1, lnTau2T2, Vex1, Vex2.
