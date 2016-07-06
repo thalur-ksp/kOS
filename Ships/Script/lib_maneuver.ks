@@ -161,4 +161,31 @@ RUN ONCE lib_engine.
 
         Add Node(time:seconds + eta:periapsis, 0, 0, dv).
     }
+    
+    maneuver:Add("ChangeApAtAN", ChangeApAtAN@).
+    function ChangeApAtAN
+    {
+        parameter newAp, curOrb is ship:orbit.
+        
+        local ta is 360-curOrb:ArgumentOfPeriapsis.
+        local radiusAtAN is orbitUtils["RadiusAtTrueAnomaly"](ta,
+                                                              curOrb:semiMajorAxis,
+                                                              curOrb:eccentricity).
+        local speedAtAN is orbitUtils["SpeedAtRadius"](radiusAtAN,
+                                                       curOrb:semiMajorAxis,
+                                                       curOrb:body:mu).
+        local initialEnergy is orbitUtils["SpecOrbitEnergy"](curOrb:semiMajorAxis,
+                                                             curOrb:body:mu).
+        local newSemiMajorAxis is orbitUtils["SemiMajorAxisFromPeAp"](newAp,
+                                                                      curOrb:periapsis,
+                                                                      curOrb:body:radius).
+        local finalEnergy is orbitUtils["SpecOrbitEnergy"](newSemiMajorAxis, curOrb:body:mu).
+                                                         
+        local dv is orbitUtils["OberthDeltaVFromEnergy"](speedAtAN, finalEnergy-initialEnergy).
+
+        local ttn is orbitUtils["TimeToAN"](curOrb).
+        
+        Add Node(time:seconds + ttn, 0, 0, dv).
+    }
+    
 }

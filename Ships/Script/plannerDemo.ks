@@ -105,8 +105,7 @@ FUNCTION Demo
                                           upperEngines,
                                          upperMaxThrust,
                                          upperStageInitialMass,
-                                         upperMaxFuelFlow,
-                                         false).
+                                         upperMaxFuelFlow).
     launchGuidance["RegisterProgram"]("closedLoop", iterGuide).
 
     launchGuidance["RegisterProgram"]("terminal",

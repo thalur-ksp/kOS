@@ -93,4 +93,95 @@
         else
             return minus.
     }
+    
+    orbitUtils:Add("RadiusAtTrueAnomaly", RadiusAtTrueAnomaly@).
+    function RadiusAtTrueAnomaly
+    {
+        parameter anomaly, sma is ship:orbit:semiMajorAxis, ecc is ship:orbit:eccentricity.
+    
+        RETURN sma * ((1-ecc^2) / (1+ecc*cos(anomaly))).
+    }
+
+    orbitUtils:Add("SpeedAtRadius", SpeedAtRadius@).
+    FUNCTION SpeedAtRadius
+    {
+        PARAMETER radius,
+                  sma is ship:orbit:semiMajorAxis,
+                  mu is ship:body:mu.
+
+        RETURN SQRT(mu*((2/radius)-(1/sma))).
+    }
+    
+    orbitUtils:Add("EccentricAnomalyFromTrueAnomaly", EccentricAnomalyFromTrueAnomaly@).
+    function EccentricAnomalyFromTrueAnomaly
+    {
+        parameter trueAnomaly, eccentricity is ship:orbit:eccentricity.
+        
+        if (eccentricity < 1)
+        {
+            return arctan2(sqrt(1-eccentricity^2)*sin(trueAnomaly),
+                           eccentricity+cos(trueAnomaly)).
+        }
+        Throw("EccentricAnomalyFromTrueAnomaly not implemented for para/hyperbolic orbits").
+    }
+    
+    orbitUtils:Add("MeanAnomalyFromEccentricAnomaly", MeanAnomalyFromEccentricAnomaly@).
+    function MeanAnomalyFromEccentricAnomaly
+    {
+        parameter eccentricAnomaly, eccentricity is ship:orbit:eccentricity.
+        
+        return (eccentricAnomaly*constant:degToRad - eccentricity*sin(eccentricAnomaly))*constant:radToDeg.
+    }
+    
+    orbitUtils:Add("MeanAnomalyFromTrueAnomaly", MeanAnomalyFromTrueAnomaly@).
+    function MeanAnomalyFromTrueAnomaly
+    {
+        parameter trueAnomaly, curOrbit is ship:orbit.
+        
+        return MeanAnomalyFromEccentricAnomaly(
+                        EccentricAnomalyFromTrueAnomaly(trueAnomaly,
+                                                        curOrbit:eccentricity),
+                        curOrbit:eccentricity).
+    }
+    
+    orbitUtils:Add("TimeToMeanAnomaly", TimeToMeanAnomaly@).
+    function TimeToMeanAnomaly
+    {
+        parameter meanAnomaly, curOrbit is ship:orbit.
+        
+        local m0 is curOrbit:MeanAnomalyAtEpoch.
+        local n is sqrt(curOrbit:body:mu / curOrbit:semiMajorAxis^3)*constant:radToDeg.
+        
+        local t is (meanAnomaly-m0)/n.
+        until t >= 0
+            set t to t+curOrbit:period.
+            
+        return t.
+    }
+    
+    orbitUtils:Add("TimeToTrueAnomaly", TimeToTrueAnomaly@).
+    function TimeToTrueAnomaly
+    {
+        parameter trueAnomaly, curOrbit is ship:orbit.
+        
+        return TimeToMeanAnomaly(MeanAnomalyFromTrueAnomaly(trueAnomaly, curOrbit)).
+    }
+    
+    orbitUtils:Add("TimeToAN", TimeToAN@).
+    function TimeToAN
+    {
+        parameter curOrbit is ship:orbit.
+        
+        local ta is 360-curOrbit:ArgumentOfPeriapsis.
+        return TimeToTrueAnomaly(ta, curOrbit).
+    }
+    
+    orbitUtils:Add("TimeToDN", TimeToDN@).
+    function TimeToDN
+    {
+        parameter curOrbit is ship:orbit.
+        
+        local ta is 180-curOrbit:ArgumentOfPeriapsis.
+        return TimeToTrueAnomaly(ta, curOrbit).
+    }
 }

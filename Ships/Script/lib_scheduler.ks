@@ -18,6 +18,7 @@ FUNCTION NewMissionScheduler
     LOCAL tNow IS -99999.
     LOCAL tLast IS null.
     LOCAL dt IS tickInterval.
+    LOCAL isDone is false.
     
     LOCAL schedule IS LEXICON().
     LOCAL pollEvents IS LIST().
@@ -56,7 +57,7 @@ FUNCTION NewMissionScheduler
     functionLex:Add("Done?", Done@).
     FUNCTION Done
     {
-        RETURN schedule:length = 0.
+        RETURN schedule:length = 0 AND isDone.
     }
     
     functionLex:Add("Schedule", AddToSchedule@).
@@ -349,6 +350,7 @@ FUNCTION NewMissionScheduler
     RegisterAction("done", done_action@, 0).
     FUNCTION done_action
     {
+        set isDone to true.
     }
     
     

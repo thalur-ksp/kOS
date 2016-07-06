@@ -49,7 +49,8 @@ LOCAL iterGuide IS NewIterativeGuidance(tgtOrbit,
                                         midMaxThrust,
                                         midStageInitialMass,
                                         midMaxFuelFlow,
-                                        false).
+                                        matchPlane,
+                                        matchArgPeri).
 launchGuidance["RegisterProgram"]("closedLoop", iterGuide).
 
 launchGuidance["RegisterProgram"]("terminal",
@@ -73,8 +74,7 @@ scheduler["Schedule"]
     ("at",    5)("LaunchGuidance_Unfreeze")
     ("at", 1,20)("LaunchGuidance_SetProgram", "closedLoop", 20)
     ("at", 2,30)("LaunchGuidance_Freeze")    
-    ("at", 2,35.5)("exec", SecondStage@)
-    ("at",15,00)("done").
+    ("at", 2,35.5)("exec", SecondStage@).
     
     function SecondStage
     {

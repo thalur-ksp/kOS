@@ -62,3 +62,8 @@ FUNCTION ByOrbitalEnergy
         RETURN ((SHIP:Velocity:Orbit:Mag^2) / 2) - (SHIP:BODY:MU / (SHIP:Altitude + SHIP:Body:Radius)).
     }
 }
+
+function ByApoapsis
+{
+    return apoapsis.
+}

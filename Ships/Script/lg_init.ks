@@ -53,6 +53,8 @@ GLOBAL recordLogs is true.
 GLOBAL showDebugInfo is true.
 GLOBAL LaunchCompleteCallback is "null".
 GLOBAL window is "null".
+GLOBAL matchPlane is true.
+GLOBAL matchArgPeri is true.
 
 LoadAndRun(missionFile, launchFile).
 

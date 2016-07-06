@@ -7,6 +7,7 @@ run once lib_orbit.
 run once lib_engine.
 run once lib_maneuver.
 
+clearscreen.
 
 LOCAL upperEngines IS NewEngineGroup(SHIP:PartsTagged("upperEngine"),
                                      SHIP:PartsTagged("upperTank"),
@@ -46,7 +47,16 @@ maneuver["ClearAllNodes"]().
     // }
 // }
 
-maneuver["ChangePeAtAp"](180000).
+print " TA: "+orbit:trueAnomaly+" or "+orbit:trueAnomaly*constant:degToRad.
+print " EA: "+as360(orbitUtils["EccentricAnomalyFromTrueAnomaly"](orbit:trueAnomaly)).
+print " MA: "+as360(orbitUtils["MeanAnomalyFromTrueAnomaly"](orbit:trueAnomaly))
+   + " vs "+as360(orbit:meanAnomalyAtEpoch).
+print " Ap: "+orbitUtils["TimeToTrueAnomaly"](180)+" vs "+eta:apoapsis.
+print " Pe: "+orbitUtils["TimeToTrueAnomaly"](0)+" vs "+eta:periapsis.
+print " AN: "+orbitUtils["TimeToAN"]().
+print " DN: "+orbitUtils["TimeToDN"]().
+
+maneuver["ChangeApAtAN"](35786000).
 
 if execute
 {
@@ -59,4 +69,14 @@ function rnd
 {
     parameter x.
     return round(x/1000)*1000.
+}
+
+function as360
+{
+    parameter r.
+    until r < 360
+        set r to r - 360.
+    until r > 0
+        set r to r + 360.
+    return r.
 }

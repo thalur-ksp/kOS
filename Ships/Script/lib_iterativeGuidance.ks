@@ -11,8 +11,16 @@ FUNCTION NewIterativeGuidance
               upperMaxThrust,   // estimate of the second stage max thrust (N)
               upperStageInitialMass,    // estimate of the second stage initial mass (kg)
               upperMaxFuelFlow. // estimate of the seconds stage max fuel flow (kg/s)
-    PARAMETER debug.
+    PARAMETER matchPlane is true.   // enables out-of-plane steering corrections
+    PARAMETER matchArgPeri is true. // enables matching the argument-of-periapsis of the target orbit
+    parameter headUp is false.  // true to execute "head up", false to execute "head down"
     
+    if defined showDebugInfo
+    {}
+    else
+    {
+        local showDebugInfo is true.
+    }
 	
 	LOCAL R0 IS SHIP:BODY:RADIUS + SHIP:ALTITUDE.	// initial radius
 	LOCAL g0 IS SHIP:BODY:MU / R0^2.	            // intial gravity strength
@@ -21,9 +29,8 @@ FUNCTION NewIterativeGuidance
 	LOCAL TInit		IS -1.    // global timestamp of the first iteration
 	LOCAL TLast		IS 0.     // global timestamp at which chi was last computed
 	LOCAL chi   	IS 90.    // previous pitch value
-    LOCAL phi       IS 15.    // previous relative true anomaly at insertion
+    LOCAL phi       IS 0.2.    // previous relative true anomaly at insertion
     LOCAL psi       IS 0.     // previous yaw value
-    LOCAL ascending IS 0.     // whether to enter orbit ascending (+ve) or descending (-ve)
     
     LOCAL functionLex IS LEXICON().
     
@@ -58,7 +65,6 @@ FUNCTION NewIterativeGuidance
     {
         PARAMETER newOrbit.
         SET tgtOrbit TO newOrbit.
-        SET ascending TO 0.
     }
     
     functionLex:Add("Evaluate", Evaluate@).
@@ -66,7 +72,9 @@ FUNCTION NewIterativeGuidance
     {
         LOCAL pointDir IS CalculateFromCurrentState().
         
-        LOCAL upDir IS -(UP:FOREVECTOR).
+        LOCAL upDir IS UP:FOREVECTOR.
+        if not headUp
+            set upDir to -upDir.
         
         RETURN LIST(LOOKDIRUP(pointDir, upDir), 1).
     }
@@ -79,10 +87,17 @@ FUNCTION NewIterativeGuidance
 
     FUNCTION CalculateFromCurrentState
     {
-        LOCAL zAxis IS tgtOrbit["OrbitAxis"]().
-        LOCAL yAxis IS UP:FOREVECTOR.
-        LOCAL xAxis IS vcrs(yAxis, zAxis):NORMALIZED.
-        SET zAxis TO vcrs(xAxis, yAxis):NORMALIZED.
+        local xAxis is 0.
+        local yAxis is UP:FOREVECTOR.
+        local zAxis is 0.
+        
+        if matchPlane
+            set zAxis to tgtOrbit["OrbitAxis"]().
+        else
+            set zAxis to vcrs(prograde:forevector, up:forevector).
+
+        set xAxis to vcrs(yAxis, zAxis):NORMALIZED.
+        set zAxis to vcrs(xAxis, yAxis):NORMALIZED. // zAxis and yAxis may not be perpendicular
         
         LOCAL x1 IS vdot(-SHIP:BODY:POSITION, xAxis).
         LOCAL y1 IS vdot(-SHIP:BODY:POSITION, yAxis).
@@ -91,27 +106,18 @@ FUNCTION NewIterativeGuidance
         LOCAL xDot1 IS vdot(SHIP:VELOCITY:ORBIT, xAxis).
         LOCAL yDot1 IS vdot(SHIP:VELOCITY:ORBIT, yAxis).
         LOCAL zDot1 IS vdot(SHIP:VELOCITY:ORBIT, zAxis).
-
-        IF ascending = 0
-        {
-            LOCAL ascNode IS tgtOrbit["AscendingNodeAxis"]().
-            LOCAL angAsc IS vang(UP:FOREVECTOR, ascNode).
-            LOCAL angDsc IS vang(UP:FOREVECTOR, -ascNode).
-            
-            SET ascending TO sign(angDsc-angAsc).
-            
-            PRINT "a: "+round(angAsc,4)+" d: "+round(angDsc,4)+" g: "+ascending+"    " at (10,14).
-        }
         
-        LOCAL T1 IS mainEngines["TimeToBurnout"]().
-        IF T1 < 0 SET T1 TO 0.
+        local T1 is 0.
+        if mainEngines<>"null"
+            set t1 to mainEngines["TimeToBurnout"]().
+        if T1 < 0 set T1 to 0.
         
         LOCAL Vex1 IS 0.
         LOCAL tau1 IS 1.		
         LOCAL Vex2 IS upperMaxThrust/upperMaxFuelFlow.
         LOCAL tau2 IS upperStageInitialMass/upperMaxFuelFlow.
             
-        IF (mainEngines["AllFiring"]())
+        IF (mainEngines <> "null" and mainEngines["AllFiring"]())
         {
             LOCAL mDot IS s1FuelFlow(mainEngines["TotalFuelFlow"]()).
             SET Vex1 TO (s1Thrust(mainEngines["TotalThrust"]())) / mDot.
@@ -126,8 +132,6 @@ FUNCTION NewIterativeGuidance
             
             SET Vex2 TO thr/mDot.
             SET tau2 TO (SHIP:MASS*1000)/mDot.
-            
-            print "mDot: "+round(mDot,2)+" thr: "+round(thr,2)+" Vex2: "+round(Vex2,2)+" tau2: "+round(tau2,2) at (0,18).
         }
         
         //returns: LIST(chi, T2, phi, psi, debugValues).
@@ -145,8 +149,11 @@ FUNCTION NewIterativeGuidance
         }
 		TOGGLE render.
         
-		SET chiDraw    TO VECDRAW(V(0,0,0),AngleAxis(-_yaw, yAxis)*xAxis*10, green, "chi", 2, true, 0.01).
-		SET resDraw TO VECDRAW(v(0,0,0) ,AngleAxis(-_yaw, yAxis) * (AngleAxis(_pitch, zAxis) * xAxis), blue, "res", 10, true, 0.02).
+        if showDebugInfo
+        {
+            SET chiDraw    TO VECDRAW(V(0,0,0),AngleAxis(-_yaw, yAxis)*xAxis*10, green, "chi", 2, true, 0.01).
+            SET resDraw TO VECDRAW(v(0,0,0) ,AngleAxis(-_yaw, yAxis) * (AngleAxis(_pitch, zAxis) * xAxis), blue, "res", 10, true, 0.02).
+        }
         
         RETURN AngleAxis(-_yaw, yAxis) * (AngleAxis(_pitch, zAxis) * xAxis).
     }
@@ -160,17 +167,28 @@ FUNCTION NewIterativeGuidance
         PARAMETER Vex1, tau1.	// stage 1 exhaust velocity and total vessel mass / first stage engine mass rate
         PARAMETER Vex2, tau2. 	// stage 2 exhaust velocity and total vessel mass (exc. first stage) / second stage engine mass rate
 
-
-        LOCAL predTrueAnomaly IS mod((phi*r2d)
-                                     + SHIP:ORBIT:TrueAnomaly
-                                     + SHIP:ORBIT:ArgumentOfPeriapsis
-                                     - tgtOrbit["argumentOfPeriapsis"], 360).
-        
-        LOCAL res IS tgtOrbit["RHV_AtTrueAnomaly"](predTrueAnomaly).
-        
-        LOCAL RT		IS res[0]. // target radius
-        LOCAL xiDotT	IS res[1]. // target horizontal speed
-        LOCAL etaDotT	IS res[2]. // target vertical speed
+        LOCAL RT		IS 0. // target radius
+        LOCAL xiDotT	IS 0. // target horizontal speed
+        LOCAL etaDotT	IS 0. // target vertical speed
+        if matchArgPeri
+        {
+            local predTrueAnomaly is mod((phi*r2d)
+                                         + SHIP:ORBIT:TrueAnomaly
+                                         + SHIP:ORBIT:ArgumentOfPeriapsis
+                                         - tgtOrbit["argumentOfPeriapsis"], 360).
+            
+            local res is tgtOrbit["RHV_AtTrueAnomaly"](predTrueAnomaly).
+            
+            set RT		to res[0]. // target radius
+            set xiDotT	to res[1]. // target horizontal speed
+            set etaDotT	to res[2]. // target vertical speed
+        }
+        else
+        {
+            set RT      to tgtOrbit["periapsisRadius"].
+            set xiDotT  to tgtOrbit["speedAtPe"].
+            set etaDotT to 0.
+        }
         LOCAL zetaDotT  IS 0.      // target out-of-plane speed
         
         PRINT "RT = "+round((RT-SHIP:BODY:RADIUS)/1000)+", h. = "+round(xiDotT,2)+", v. = "+round(etaDotT,2)+"     " at (0,20).
@@ -187,6 +205,7 @@ FUNCTION NewIterativeGuidance
         
         IF ((T2prime <> -9999) AND (T2prime < 0.2))
         {
+            print "T2prime = "+T2prime at (0,23).
             RETURN LIST(mod(chi*r2d,360), T2, phi*r2d, psi*r2d, debugValues).
         }
         
@@ -232,13 +251,18 @@ FUNCTION NewIterativeGuidance
             PRINT "!T2prime >= tau2" at(25,16).
             SET T2prime TO tau2 - (TNow - TLast).
         }
+        if showDebugInfo
+            print "T2' = "+round(T2Prime,2)+", tau2 = "+round(tau2,2) at (0,27).
 
         
         // 3b: Compute phi_12, phi_T and phiStar
         SET phi_12 TO (1/RT)*( (V1+L1-gStar*T1*sinRad(phi_11/2))*T2prime
                               + Vex2*(T2prime - (tau2-T2prime)*ln(tau2/(tau2-T2prime)))).	// 53
         SET phi_T TO phi_1 + phi_11 + phi_12.		// 54
-        SET phiStar TO (gw1*phi_11 + gwT*phi_12).		// 55 - this approximation, along with gStar, introduce the most error.  A weighted average may improve things, do this one first
+        if T1 <> 0
+            SET phiStar TO (gw1*phi_11 + gwT*phi_12).		// 55 - this approximation, along with gStar, introduce the most error.  A weighted average may improve things, do this one first
+        else
+            set phiStar to phi_12.
 
         LOCAL cosPhiStar IS cosRad(phiStar).
         LOCAL sinPhiStar IS sinRad(phiStar).
@@ -253,24 +277,35 @@ FUNCTION NewIterativeGuidance
 		LOCAL xiDot1 IS cosPhiT*xDot1 - sinPhiT*yDot1.
 		LOCAL etaDot1 IS sinPhiT*xDot1 + cosPhiT*yDot1.
 		
-        LOCAL rv IS tgtOrbit["OutOfPlaneRV"](SHIP).
-        LOCAL zeta1 IS rv[0].
-		LOCAL zetaDot1 IS rv[1].
+        LOCAL zeta1 IS 0.
+		LOCAL zetaDot1 IS 0.
+        if matchPlane
+        {
+            local rv is tgtOrbit["OutOfPlaneRV"](SHIP).
+            set zeta1 to rv[0].
+            set zetaDot1 to rv[1].
+        }
 
-        PRINT "xi1:      "+round(xi1)+"     " at (0,28).
-        PRINT "eta1:     "+round(eta1)+"     " at (0,29).
-        PRINT "zeta1:    "+round(zeta1)+"     " at (0,30).
-        PRINT "xiDot1:   "+round(xiDot1,2)+"      " at (32,28).
-        PRINT "etaDot1:  "+round(etaDot1,2)+"      " at (32,29).
-        PRINT "zetaDot1: "+round(zetaDot1,2)+"      " at (32,30).
+        if showDebugInfo
+        {
+            PRINT "xi1:      "+round(xi1)+"     " at (0,28).
+            PRINT "eta1:     "+round(eta1)+"     " at (0,29).
+            PRINT "zeta1:    "+round(zeta1)+"     " at (0,30).
+            PRINT "xiDot1:   "+round(xiDot1,2)+"      " at (32,28).
+            PRINT "etaDot1:  "+round(etaDot1,2)+"      " at (32,29).
+            PRINT "zetaDot1: "+round(zetaDot1,2)+"      " at (32,30).
+        }
                 
         SET deltaXiDotStar TO xiDotT - xiDot1 - gStar*(T1+T2prime)*sinPhiStar.		// 58
         SET deltaEtaDotStar TO etaDotT - etaDot1 + gStar*(T1+T2prime)*cosPhiStar.	// 59
         SET deltaZeta TO zetaDotT - zetaDot1.
-                
-        PRINT "deltaXiDotStar:   "+round(deltaXiDotStar,4)+"     " at (0,32).
-        PRINT "deltaEtaDotStar:  "+round(deltaEtaDotStar,4)+"     " at (0,33).
-        PRINT "deltaZeta: "+round(deltaZeta,4)+"     " at (0,34).
+
+        if showDebugInfo
+        {
+            PRINT "deltaXiDotStar:   "+round(deltaXiDotStar,4)+"     " at (0,32).
+            PRINT "deltaEtaDotStar:  "+round(deltaEtaDotStar,4)+"     " at (0,33).
+            PRINT "deltaZeta: "+round(deltaZeta,4)+"     " at (0,34).
+        }
         
         // 5: Compute deltaT2 and T2
         SET lambda TO gStar * (deltaEtaDotStar * cosPhiStar - deltaXiDotStar * sinPhiStar).		// 60
@@ -280,7 +315,7 @@ FUNCTION NewIterativeGuidance
         SET a TO K^2 - gStar^2.			// 71
         SET b TO lambda - L*K.			// 72
         SET c TO deltaVStarSq - L^2.	// 73
-        
+                
         SET deltaT2 TO 0.
         IF a = 0
         {
@@ -315,11 +350,15 @@ FUNCTION NewIterativeGuidance
 
         SET psiTilde TO arctan2Rad(deltaZeta, deltaXiDotStar - gStar*deltaT2*sinPhiStar).
         
-        PRINT "chi~: "+round(chiTilde*r2d,4)+" psi~: "+round(psiTilde*r2d,4)+"     " at (0,36).
+        if showDebugInfo
+        {
+            PRINT "chi~: "+round(chiTilde*r2d,4)+" psi~: "+round(psiTilde*r2d,4)+"     " at (0,36).
+        }
 
         // 7: Calculate K1 and K2 - these provide the altitude constraint, which gets disabled shortly before burnout.
         LOCAL K1 IS 0.
         LOCAL K2 IS 0.
+        local cpsi is 0.
         IF T2 > (epsilon*2)
         {
             LOCAL s_a_dt IS L1 + Vex2*lnTau2T2.     // 43 - integral of total acceleration
@@ -350,15 +389,20 @@ FUNCTION NewIterativeGuidance
                                 tau1, tau2, lnTau1T1, lnTau2T2, Vex1, Vex2,
                                 T1, T2, TNow, TLast,
                                 s_a_dt, s_at_dt, ss_a_dt2, ss_at_dt2).
-
-            PRINT "cpsi: "+round(cpsi*r2d, 2)+"    " at (10,15).
-            
-            PRINT "stdy: "+round(zeta1+zetaDot1*(T1+T2),2)+
-                  "   ~: "+round(sinRad(cpsi)*ss_a_dt2,2)+"     " at (0,47).
+            if showDebugInfo
+            {
+                PRINT "cpsi: "+round(cpsi*r2d, 2)+"    " at (10,15).
+                
+                PRINT "stdy: "+round(zeta1+zetaDot1*(T1+T2),2)+
+                      "   ~: "+round(sinRad(cpsi)*ss_a_dt2,2)+"     " at (0,47).
+            }
         }
         // 8: Calculate Chi
-        PRINT "K1: "+round(K1*r2d,2)+" phi_T: "+round(phi_T*r2d,2)+" K2: "+round(K2*r2d,4)+" dt: "+round(TNow-TLast,2)+"     " at (0,37).
-        PRINT "tNow: "+TNow+" tLast: "+TLast+"     " at (0,38).
+        if showDebugInfo
+        {
+            PRINT "K1: "+round(K1*r2d,2)+" phi_T: "+round(phi_T*r2d,2)+" K2: "+round(K2*r2d,4)+" dt: "+round(TNow-TLast,2)+"     " at (0,37).
+            PRINT "tNow: "+TNow+" tLast: "+TLast+"     " at (0,38).
+        }
         
         SET chi TO chiTilde - K1 - phi_T + K2*(TNow - TLast).			// 78
         SET phi TO phi_T.

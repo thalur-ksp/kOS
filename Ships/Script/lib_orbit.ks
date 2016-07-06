@@ -32,6 +32,8 @@ FUNCTION NewOrbitFromKepler
        ,"period", period
        ,"apoapsis", apoapseAlt
        ,"periapsis", periapseAlt
+       ,"apoapsisRadius", apoapsisRad
+       ,"periapsisRadius", periapsisRad
        ,"specificEnergy", SpecOrbitEnergy()
        ,"speedAtPe", SpeedAtPe()
        ,"speedAtAp", SpeedAtAp()

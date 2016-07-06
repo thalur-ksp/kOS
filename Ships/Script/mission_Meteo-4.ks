@@ -8,6 +8,7 @@ LOCAL tgtOrbit IS NewOrbitFromKepler(Ship:Orbit:Body,
                                      90,    // inclination
                                      44.9,     // lan
                                      -90).  // arg peri
+set matchArgPeri to false.
 
 local lws is launchWindow["FindLaunchWindow"](tgtOrbit["inclination"], tgtOrbit["lan"], offsetTTZ).
 local window is lws[0].
@@ -25,8 +26,9 @@ function postLaunch
 {
     wait 1.
     maneuver["ChangeApAtPe"](6101084).
-    maneuver["ChangePeAtAp"](6009871).
-    wait 10.
-    maneuver["ExecuteNextNode"](upperEngines, "rcs", 5).
-    maneuver["ExecuteNextNode"]("rcs", "none").
+    // wait 0.01.
+    // maneuver["ChangePeAtAp"](6009871, NextNode:orbit).
+    // wait 10.
+    // maneuver["ExecuteNextNode"](upperEngines, "rcs", 5).
+    // maneuver["ExecuteNextNode"]("rcs", "none").
 }
