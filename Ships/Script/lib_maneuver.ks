@@ -27,15 +27,95 @@ RUN ONCE lib_engine.
         }
     }
     
+    // uses the scheduler to perform an orbit change using the iterative guidance routine
+    maneuver:Add("ScheduleOrbitChange", ScheduleOrbitChange@).
+    function ScheduleOrbitChange
+    {
+        parameter scheduler,
+                  guidance,
+                  tgtOrbit,
+                  timeToNode,
+                  burnTime,
+                  engines,
+                  nominalThrust,
+                  nominalFuelFlow,
+                  description,
+                  terminalCondition,
+                  terminalValue,
+                  mnvCompleteCallback.
+
+        if timeToNode < 0
+            throw("timeToNode must be in the future").
+
+        lock throttle to 0.
+        wait 0.001.
+        engines["Activate"]().
+        wait 0.001.
+        
+        LOCAL mnvGuide IS NewIterativeGuidance(tgtOrbit,
+                            1,	    // terminal guidance freeze time
+                            "null",
+                            engines,
+                            nominalThrust,
+                            ship:mass*1000,
+                            nominalFuelFlow,
+                            true,
+                            true,
+                            true).      // heads up
+        engines["Shutdown"]().
+        unlock throttle.
+
+        local guideName is "mnvGuide: "+description.
+        local termName is "mnvTerm: "+description.
+        guidance["RegisterProgram"](guideName, mnvGuide).
+        guidance["RegisterProgram"](termName,
+                        TerminalGuidance(terminalCondition,
+                                         terminalValue,
+                                         mnv_terminate@)).
+
+        
+
+        local startTime is timeToNode - burnTime.
+        scheduler["schedule"]
+            ("in", startTime -21)("exec", ShutdownEngines@)
+            ("in", startTime -20)("LaunchGuidance_SetProgram", guideName)
+                          ("and")("LaunchGuidance_Engage")
+            ("in", startTime -10)("LaunchGuidance_Freeze")
+            ("in", startTime  -2)("exec", ActivateEngines@)
+            ("in", startTime  +2)("LaunchGuidance_Unfreeze")
+            ("when", NearBurnout@)("LaunchGuidance_SetProgram", termName).
+
+        function mnv_terminate
+        {
+            engines["Shutdown"]().
+            guidance["Disengage"]().
+            if mnvCompleteCallback <> "null"
+                mnvCompleteCallback().
+        }        
+
+        function ShutdownEngines
+        {
+            engines["Shutdown"]().
+        }
+        function ActivateEngines
+        {
+            engines["IgniteEnginesWait"]("rcs", 2).
+        }
+
+        function NearBurnout
+        {
+            local T2 is mnvGuide["T2"]().
+            return T2 >= 0 and T2 < 10.
+        }
+    }
+    
     maneuver:Add("ExecuteNextNode", ExecuteNextNode@).
     function ExecuteNextNode
     {
         parameter engines,          // lib_engine of the engines to fire (and any ullage motors)
                   ullageMethod,     // "none", "rcs", "engine"
                   minUllageTime,    // minimum time to wait after starting ullage before firing
-                  spinRpm is 0,     // RPM to spin up to during ullage (0 = no spin)
-                  warpTo is true,   // auto-warp to the node
-                  adjust is false.  // [NOT IMPLEMENTED] fine tune with RCS afterwards
+                  warpTo is true.   // auto-warp to the node
         
         if (not HasNextNode())
             return.
@@ -184,6 +264,32 @@ RUN ONCE lib_engine.
         local dv is orbitUtils["OberthDeltaVFromEnergy"](speedAtAN, finalEnergy-initialEnergy).
 
         local ttn is orbitUtils["TimeToAN"](curOrb).
+        
+        Add Node(time:seconds + ttn, 0, 0, dv).
+    }
+    
+    maneuver:Add("ChangePeAtDN", ChangePeAtDN@).
+    function ChangePeAtDN
+    {
+        parameter newPe, curOrb is ship:orbit.
+        
+        local ta is 180-curOrb:ArgumentOfPeriapsis.
+        local radiusAtDN is orbitUtils["RadiusAtTrueAnomaly"](ta,
+                                                              curOrb:semiMajorAxis,
+                                                              curOrb:eccentricity).
+        local speedAtDN is orbitUtils["SpeedAtRadius"](radiusAtDN,
+                                                       curOrb:semiMajorAxis,
+                                                       curOrb:body:mu).
+        local initialEnergy is orbitUtils["SpecOrbitEnergy"](curOrb:semiMajorAxis,
+                                                             curOrb:body:mu).
+        local newSemiMajorAxis is orbitUtils["SemiMajorAxisFromPeAp"](curOrb:apoapsis,
+                                                                      newPe,
+                                                                      curOrb:body:radius).
+        local finalEnergy is orbitUtils["SpecOrbitEnergy"](newSemiMajorAxis, curOrb:body:mu).
+                                                         
+        local dv is orbitUtils["OberthDeltaVFromEnergy"](speedAtDN, finalEnergy-initialEnergy).
+
+        local ttn is orbitUtils["TimeToDN"](curOrb).
         
         Add Node(time:seconds + ttn, 0, 0, dv).
     }

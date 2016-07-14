@@ -16,17 +16,18 @@ set warp to 0.
 GLOBAL showDebugInfo is true.
 
 maneuver["ClearAllNodes"]().
-maneuver["ChangeApAtAN"](35786000).
+//maneuver["ChangeApAtAN"](35786000).
+maneuver["ChangePeAtDN"](35786000).
 
-local ta is 360-ship:orbit:ArgumentOfPeriapsis.
+local ta is 180-ship:orbit:ArgumentOfPeriapsis.
 local radiusAtAN is orbitUtils["RadiusAtTrueAnomaly"](ta,
                                                       ship:orbit:semiMajorAxis,
                                                       ship:orbit:eccentricity).
 
 LOCAL tgtOrbit IS NewOrbitFromKepler(body,
-                                     35786000,      // apoapse
                                      radiusAtAN-body:radius,    // periapse set to the burn radius
-                                     ship:orbit:inclination,      // inclination
+                                     35786000,      // apoapse
+                                     0,      // inclination
                                      ship:orbit:lan,         // lan
                                      0).            // arg peri - periapse on the equator
                                      
@@ -52,13 +53,13 @@ LOCAL gtoGuide IS NewIterativeGuidance(tgtOrbit,
 launchGuidance["RegisterProgram"]("closedLoop", gtoGuide).
 
 launchGuidance["RegisterProgram"]("terminal-1",
-                        TerminalGuidance(ByApoapsis@,
-                                         tgtOrbit["apoapsis"],
+                        TerminalGuidance(ByPeriod@,//ByApoapsis@,
+                                         ((23*60)+56)*60+4,//tgtOrbit["apoapsis"],
                                          Terminate1@)).
 launchGuidance["SetProgram"]("closedLoop").
 
-local timeToAn is orbitUtils["TimeToAN"]().
-local burnTime is upperEngines["TimeToBurnDv"](NextNode:deltaV:mag).
+local timeToAn is orbitUtils["TimeToDN"]().
+local burnTime is upperEngines["TimeToBurnDv"](NextNode:deltaV:mag*0.8).
 print round(timeToAn)+"  "+round(burnTime).
 if timeToAn < 0
     set timeToAn to 1/0.

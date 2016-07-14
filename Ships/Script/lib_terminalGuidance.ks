@@ -39,7 +39,11 @@ FUNCTION TerminalGuidance
             {
                 SET throt TO 0.
                 IF doneCallback <> "null"
-                    doneCallback().
+                {
+                    local tmp is doneCallback.
+                    set doneCallback to "null".
+                    tmp().
+                }
                 print beep.
             }
         }
@@ -66,4 +70,9 @@ FUNCTION ByOrbitalEnergy
 function ByApoapsis
 {
     return apoapsis.
+}
+
+function ByPeriod
+{
+    return ship:orbit:period.
 }

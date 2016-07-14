@@ -235,8 +235,11 @@ FUNCTION NewEngineGroup
         LOCAL cMassRatio IS 0.
         FOR engine IN engines
         {
-            local massRatio is (engine:availableThrustAt(atmo)*1000) / (engine:IspAt(atmo) * 9.81).
-            set cMassRatio to cMassRatio + massRatio.
+            if engine:IspAt(atmo) > 0
+            {
+                local massRatio is (engine:availableThrustAt(atmo)*1000) / (engine:IspAt(atmo) * 9.81).
+                set cMassRatio to cMassRatio + massRatio.
+            }
         }
         RETURN cMassRatio.
     }
@@ -263,9 +266,12 @@ FUNCTION NewEngineGroup
         LOCAL cMassRatio IS 0.
         FOR engine IN engines
         {
-            local massRatio is (engine:availableThrustAt(atmo)*1000) / (engine:IspAt(atmo) * 9.81).
-            set cThrust to cThrust + (engine:availableThrustAt(atmo)*1000).
-            set cMassRatio to cMassRatio + massRatio.
+            if engine:IspAt(atmo) > 0
+            {
+                local massRatio is (engine:availableThrustAt(atmo)*1000) / (engine:IspAt(atmo) * 9.81).
+                set cThrust to cThrust + (engine:availableThrustAt(atmo)*1000).
+                set cMassRatio to cMassRatio + massRatio.
+            }
         }
         RETURN cThrust/cMassRatio.
     }
@@ -287,9 +293,12 @@ FUNCTION NewEngineGroup
         LOCAL cMassRatio IS 0.
         FOR engine IN engines
         {
-            local massRatio is (engine:availableThrustAt(atmo)*1000) / (engine:IspAt(atmo) * 9.81).
-            set cThrust to cThrust + (engine:availableThrustAt(atmo)*1000).
-            set cMassRatio to cMassRatio + massRatio.
+            if engine:IspAt(atmo) > 0
+            {
+                local massRatio is (engine:availableThrustAt(atmo)*1000) / (engine:IspAt(atmo) * 9.81).
+                set cThrust to cThrust + (engine:availableThrustAt(atmo)*1000).
+                set cMassRatio to cMassRatio + massRatio.
+            }
         }
         
         local m0 is ship:mass * 1000.
