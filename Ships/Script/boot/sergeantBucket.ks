@@ -8,30 +8,28 @@ SET TERMINAL:HEIGHT TO 24.
 SET TERMINAL:WIDTH TO 42.
 SET TERMINAL:BRIGHTNESS TO 0.8.
 
-
+print "boot_sergeantBucket.".
+print "loading...".
 switch to 0.
 run lib_io.
 run lib_ipc.
 run lib_parts.
 run spec_char.
 switch to 1.
-    
-ipc["SetLocalIdentifier"]("Payload").
+print "loaded.".
+
 wait 1.
 wait 180.
 print "waiting for activation.".
 ipc["WaitUntilActive"]().
 print "activated".
-lock throttle to 1.
 wait 1.
-stage.  // XASR-1
-wait 66.
-stage.  // 12x
-wait 6.5.
-stage.  // 5x
-wait 6.5.
-stage.  //1x
+stage.
+wait 7.
+stage.
+wait 7.
+stage.
 wait 10.
 
-// DoEventOnParts(CORE:PART, "ModuleRTAntenna", "Activate").
+DoEventOnParts(CORE:PART, "ModuleRTAntenna", "Activate").
 print beep.

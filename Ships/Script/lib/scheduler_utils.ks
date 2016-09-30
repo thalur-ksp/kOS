@@ -1,6 +1,6 @@
-// Utilities for lib_scheduler
+// Utilities for lib/scheduler
 
-RUN ONCE spec_char.ksm.
+RUNONCEPATH("spec_char.ksm").
 
 FUNCTION AddCountdown
 {

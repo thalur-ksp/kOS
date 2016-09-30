@@ -1,7 +1,7 @@
-// lib_maneuver
+// lib/maneuver
 
-RUN ONCE lib_orbitUtils.
-RUN ONCE lib_engine.
+RUNONCEPATH("lib/orbitUtils").
+RUNONCEPATH("lib/engine").
 
 {
     GLOBAL maneuver is lexicon().
@@ -112,7 +112,7 @@ RUN ONCE lib_engine.
     maneuver:Add("ExecuteNextNode", ExecuteNextNode@).
     function ExecuteNextNode
     {
-        parameter engines,          // lib_engine of the engines to fire (and any ullage motors)
+        parameter engines,          // lib/engine of the engines to fire (and any ullage motors)
                   ullageMethod,     // "none", "rcs", "engine"
                   minUllageTime,    // minimum time to wait after starting ullage before firing
                   warpTo is true.   // auto-warp to the node

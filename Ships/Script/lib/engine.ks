@@ -1,11 +1,11 @@
-// lib_engine.ks
+// lib/engine.ks
 // Engine start and shutdown utilities for use with RO
 // /u/Thalur
 
 @LAZYGLOBAL OFF.
 
-RUN ONCE lib_function.
-RUN ONCE lib_enum.
+RUNONCEPATH("lib/function").
+RUNONCEPATH("lib/enum").
 
 FUNCTION NewEngineGroup
 {

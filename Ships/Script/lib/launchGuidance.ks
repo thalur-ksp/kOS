@@ -2,7 +2,7 @@
 
 @LAZYGLOBAL OFF.
 
-RUN ONCE lib_scheduler.
+RUNONCEPATH("lib/scheduler").
 
 
 GLOBAL launchGuidance_evaluate IS "evaluate".

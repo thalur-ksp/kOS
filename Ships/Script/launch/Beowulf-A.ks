@@ -1,8 +1,9 @@
-// Beowulf-B
+// Beowulf-A
 
+SET TERMINAL:HEIGHT TO 48.
+SET TERMINAL:WIDTH TO 64.
+CLEARSCREEN.
 
-ipc["SetLocalIdentifier"]("Beowulf").
-ipc["Activate"]("Beowulf").
 
 //if not defined window
 if window:typename <> "lexicon"
@@ -15,7 +16,6 @@ if tgtOrbit:typename <> "lexicon"
     throw("Target orbit not defined").
 }
 
-
 LOCAL mainEngines IS NewEngineGroup(SHIP:PartsTagged("mainEngine"),
                                     SHIP:PartsTagged("mainTank"),
                                     LIST("Kerosene","LqdOxygen")).
@@ -26,7 +26,7 @@ LOCAL upperEngines IS NewEngineGroup(SHIP:PartsTagged("upperEngine"),
                                      SHIP:PartsTagged("upperUlage")).
 
 LOCAL upperMaxThrust IS 35100.          // thrust in N
-LOCAL upperMaxFuelFlow IS 3.388+9.4869. // fuel flow in kg/s
+LOCAL upperMaxFuelFlow IS 3.388+9.4869. // fuel flow in kg
 LOCAL upperStageInitialMass IS 4324.    // mass in kg
 
 launchGuidance["RegisterProgram"]("lowerAscent",
@@ -40,9 +40,7 @@ LOCAL iterGuide IS NewIterativeGuidance(tgtOrbit,
                                         upperEngines,
                                         upperMaxThrust,
                                         upperStageInitialMass,
-                                        upperMaxFuelFlow,
-                                        matchPlane,
-                                        matchArgPeri).
+                                        upperMaxFuelFlow).
 launchGuidance["RegisterProgram"]("closedLoop", iterGuide).
 
 launchGuidance["RegisterProgram"]("terminal",
@@ -65,9 +63,9 @@ scheduler["Schedule"]
     ("at",    0)("stage")
     ("at",    5)("LaunchGuidance_Unfreeze")
     ("at", 1,30)("LaunchGuidance_SetProgram", "closedLoop", 10)
-    ("at", 2,40)("LaunchGuidance_Freeze")    
-    ("at", 2,45.5)("exec", SecondStage@)
-    ("at", 3,00)("stage")   // fairing.
+    ("at", 2,25)("LaunchGuidance_Freeze")    
+    ("at", 2,30.5)("exec", SecondStage@)
+    ("at", 2,45)("stage")   // fairing.
     
     FUNCTION SecondStage
     {
@@ -82,10 +80,12 @@ scheduler["Schedule"]
 
     FUNCTION Terminate
     {
+        scheduler["ClearSchedule"]().
+        scheduler["Schedule"]
+                    ("in", 3)("ipc_ActivatePayload")
+                    ("in", 10)("done").
         launchGuidance["Disengage"]().
         CLEARVECDRAWS().
-        if LaunchCompleteCallback <> "null"
-            LaunchCompleteCallback().
     }
     
     FUNCTION SetUpperSteering

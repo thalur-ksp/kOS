@@ -1,6 +1,6 @@
 // Abort controller
 
-RUN ONCE lib_scheduler.
+RUNONCEPATH("lib/scheduler").
 
 GLOBAL abortFired IS False.
 
@@ -11,7 +11,7 @@ ON ABORT
 
 FUNCTION NewAbortController
 {
-    LOCAL null IS "lib_abort_null".
+    LOCAL null IS "lib/abort_null".
 
     LOCAL functionLex IS LEXICON().
     LOCAL abortModes IS LEXICON().

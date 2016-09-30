@@ -3,8 +3,6 @@
 SET TERMINAL:HEIGHT TO 24.
 SET TERMINAL:WIDTH TO 42.
 
-ipc["SetLocalIdentifier"]("Hornet").
-ipc["Activate"]("Hornet").
 
 launchGuidance["RegisterProgram"]("lowerAscent",
                 BasicGuidance(scheduler["tNow"],
@@ -72,7 +70,7 @@ scheduler["Schedule"]
     {
         scheduler["Schedule"]
             ("in", 1)("stage") // spin
-            ("in", 3.75)("ipc_TransferTo", "Payload")
+            ("in", 3.75)("ipc_ActivatePayload")
                   ("and")("log", "Transferring control to payload")
             ("in", 4)("stage").
     }

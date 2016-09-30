@@ -9,30 +9,30 @@ CLEARSCREEN.
 
 PRINT "Loading Libraries...".
 SWITCH TO 0.
-PRINT "spec_char". RUN spec_char. WAIT 0.1.
-PRINT "lib_enum". RUN lib_enum. WAIT 0.1.
-PRINT "lib_function". RUN lib_function. WAIT 0.1.
-PRINT "lib_engine". RUN lib_engine. WAIT 0.1.
-PRINT "lib_string". RUN lib_string. WAIT 0.1.
-PRINT "lib_scheduler". RUN lib_scheduler. WAIT 0.1.
-PRINT "lib_scheduler_utils". RUN lib_scheduler_utils. WAIT 0.1.
-PRINT "lib_abort". RUN lib_abort. WAIT 0.1.
-PRINT "lib_maths". RUN lib_maths. WAIT 0.1.
-PRINT "lib_orbit". RUN lib_orbit. WAIT 0.1.
-PRINT "lib_launchGuidance". RUN lib_launchGuidance. WAIT 0.1.
-PRINT "lib_basicGuidance". RUN lib_basicGuidance. WAIT 0.1.
-//PRINT "lib_iterativeGuidance". RUN lib_iterativeGuidance. WAIT 0.1.
-PRINT "lib_terminalGuidance". RUN lib_terminalGuidance. WAIT 0.1.
-PRINT "lib_parts". RUN lib_parts. WAIT 0.1.
-PRINT "lib_io". RUN lib_io. WAIT 0.1.
-PRINT "lib_ipc". RUN lib_ipc. WAIT 0.1.
-PRINT "lib_launchWindow". RUN lib_launchWindow. WAIT 0.1.
-PRINT "lib_orbitUtils". RUN lib_orbitUtils. WAIT 0.1.
-PRINT "lib_maneuver". RUN lib_maneuver. WAIT 0.1.
-SWITCH TO 1.
+PRINT "spec_char". RUNONCEPATH("spec_char"). WAIT 0.1.
+PRINT "lib/enum". RUNONCEPATH("lib/enum"). WAIT 0.1.
+PRINT "lib/function". RUNONCEPATH("lib/function"). WAIT 0.1.
+PRINT "lib/engine". RUNONCEPATH("lib/engine"). WAIT 0.1.
+PRINT "lib/string". RUNONCEPATH("lib/string"). WAIT 0.1.
+PRINT "lib/scheduler". RUNONCEPATH("lib/scheduler"). WAIT 0.1.
+PRINT "lib/scheduler_utils". RUNONCEPATH("lib/scheduler_utils"). WAIT 0.1.
+PRINT "lib/abort". RUNONCEPATH("lib/abort"). WAIT 0.1.
+PRINT "lib/maths". RUNONCEPATH("lib/maths"). WAIT 0.1.
+PRINT "lib/orbit". RUNONCEPATH("lib/orbit"). WAIT 0.1.
+PRINT "lib/launchGuidance". RUNONCEPATH("lib/launchGuidance"). WAIT 0.1.
+PRINT "lib/basicGuidance". RUNONCEPATH("lib/basicGuidance"). WAIT 0.1.
+//PRINT "lib/iterativeGuidance". RUNONCEPATH("lib/iterativeGuidance"). WAIT 0.1.
+PRINT "lib/terminalGuidance". RUNONCEPATH("lib/terminalGuidance"). WAIT 0.1.
+PRINT "lib/parts". RUNONCEPATH("lib/parts"). WAIT 0.1.
+PRINT "lib/io". RUNONCEPATH("lib/io"). WAIT 0.1.
+PRINT "lib/ipc". RUNONCEPATH("lib/ipc"). WAIT 0.1.
+PRINT "lib/launchWindow". RUNONCEPATH("lib/launchWindow"). WAIT 0.1.
+PRINT "lib/orbitUtils". RUNONCEPATH("lib/orbitUtils"). WAIT 0.1.
+PRINT "lib/maneuver". RUNONCEPATH("lib/maneuver"). WAIT 0.1.
 
-COPY lib_iterativeGuidance from 0.
-PRINT "lib_iterativeGuidance". RUN lib_iterativeGuidance. WAIT 0.1.
+//COPYPATH("0:lib/iterativeGuidance", "1:").
+PRINT "lib/iterativeGuidance". RUNONCEPATH("lib/iterativeGuidance"). WAIT 0.1.
+SWITCH TO 1.
 
 PRINT "Done.".
 PRINT "".
@@ -130,27 +130,11 @@ FUNCTION LoadAndRun
 {
     PARAMETER missionFile, launchFile.
     
-    PRINT "loading "+missionFile.
-    
-    LOG "" TO "mission.exec".
-    DELETE "mission.exec".
-    LOG "" TO missionFile.
-    DELETE missionFile.
-    COPY missionFile FROM 0.    
-    RENAME missionFile TO "mission.exec".
-    RUN mission.exec.
-    RENAME "mission.exec" TO missionFile.
+    PRINT "loading "+missionFile.    
+    RUNONCEPATH("0:"+missionFile).
     
     PRINT "loading "+launchFile.
-    
-    LOG "" TO "launch.exec".
-    DELETE "launch.exec".
-    LOG "" TO launchFile.
-    DELETE launchFile.
-    COPY launchFile FROM 0.    
-    RENAME launchFile TO "launch.exec".
-    RUN launch.exec.
-    RENAME "launch.exec" TO launchFile.
+    RUNONCEPATH("0:"+launchFile).
 }
 
 function PrintCurrentState

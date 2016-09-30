@@ -1,5 +1,5 @@
-// lib_parts
-RUN ONCE lib_enum.
+// lib/parts
+RUNONCEPATH("lib/enum").
 
 FUNCTION DoEventOnParts
 {

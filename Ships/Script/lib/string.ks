@@ -1,7 +1,7 @@
 // string utilities
 @LAZYGLOBAL OFF.
 
-RUN ONCE lib_enum.
+RUNONCEPATH("lib/enum").
 
 FUNCTION FormatNumber
 {

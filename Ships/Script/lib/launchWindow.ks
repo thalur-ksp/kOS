@@ -1,6 +1,6 @@
-// lib_launchWindow
+// lib/launchWindow
 
-RUN ONCE lib_maths.
+RUNONCEPATH("lib/maths").
 
 
 {

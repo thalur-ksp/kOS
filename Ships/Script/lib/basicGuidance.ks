@@ -1,6 +1,6 @@
 // basic guidance routines
-RUN ONCE lib_maths.
-RUN ONCE lib_launchGuidance.
+RUNONCEPATH("lib/maths").
+RUNONCEPATH("lib/launchGuidance").
 
 
 FUNCTION BasicGuidance

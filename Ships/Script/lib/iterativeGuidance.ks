@@ -1,13 +1,13 @@
-RUN ONCE lib_maths.
-RUN ONCE lib_orbit.
-RUN ONCE lib_engine.
+RUNONCEPATH("lib/maths").
+RUNONCEPATH("lib/orbit").
+RUNONCEPATH("lib/engine").
 
 FUNCTION NewIterativeGuidance
 {
-	PARAMETER tgtOrbit.         // target orbit (lib_orbit)
+	PARAMETER tgtOrbit.         // target orbit (lib/orbit)
 	PARAMETER epsilon.	        // terminal guidance freeze time
-    PARAMETER mainEngines.      // first stage engines (lib_engines)
-    PARAMETER upperEngines,     // second stage engines (lib_engines)
+    PARAMETER mainEngines.      // first stage engines (lib/engines)
+    PARAMETER upperEngines,     // second stage engines (lib/engines)
               upperMaxThrust,   // estimate of the second stage max thrust (N)
               upperStageInitialMass,    // estimate of the second stage initial mass (kg)
               upperMaxFuelFlow. // estimate of the seconds stage max fuel flow (kg/s)

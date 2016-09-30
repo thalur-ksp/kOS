@@ -1,5 +1,5 @@
 // File and volume operations
-RUN ONCE lib_enum.
+RUNONCEPATH("lib/enum").
 
 {
     local vols is list().

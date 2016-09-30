@@ -1,7 +1,7 @@
 // KSP Mission Planner
-RUN ONCE lib_enum.
-RUN ONCE lib_function.
-RUN ONCE lib_string.
+RUNONCEPATH("lib/enum").
+RUNONCEPATH("lib/function").
+RUNONCEPATH("lib/string").
 
 FUNCTION NewMissionScheduler
 {
@@ -354,7 +354,7 @@ FUNCTION NewMissionScheduler
     }
     
     
-    // because lib_ipc is essentially global static, it can't register
+    // because lib/ipc is essentially global static, it can't register
     // methods with the instance of the scheduler we are constructing
     // itself, so we have to do it for it, and do it in a way that doesn't
     // add a dependency.

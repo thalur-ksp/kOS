@@ -1,9 +1,6 @@
 // Beowulf-C
 
 
-ipc["SetLocalIdentifier"]("Beowulf").
-ipc["Activate"]("Beowulf").
-
 //if not defined window
 if window:typename <> "lexicon"
 {
