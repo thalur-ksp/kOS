@@ -1,5 +1,7 @@
 // Orbit object and utils
 
+RUNONCEPATH("lib/orbitUtils").
+
 FUNCTION NewOrbitFromKosOrbit
 {
     PARAMETER kosOrbit.
@@ -13,7 +15,7 @@ FUNCTION NewOrbitFromKepler
     PARAMETER mainBody.
     PARAMETER apoapseAlt, periapseAlt.
     PARAMETER inclination, LAN, argPeri.
-    
+
     LOCAL apoapsisRad IS apoapseAlt + mainBody:Radius.
     LOCAL periapsisRad IS periapseAlt + mainBody:Radius.
     LOCAL semiMajorAxis IS (apoapsisRad+periapsisRad)/2.
@@ -37,8 +39,9 @@ FUNCTION NewOrbitFromKepler
        ,"specificEnergy", SpecOrbitEnergy()
        ,"speedAtPe", SpeedAtPe()
        ,"speedAtAp", SpeedAtAp()
+	   ,"body", mainBody
     ).
-    
+
     // Specific orbital energy
     FUNCTION SpecOrbitEnergy
     {
@@ -63,6 +66,10 @@ FUNCTION NewOrbitFromKepler
     FUNCTION FlightPathAngleFromRV
     {
         PARAMETER rCur, vCur.
+
+		if (rCur = 0 or vCur = 0)
+			Throw("Divide by zero "+round(rCur,2)+", "+round(vCur,2)).
+
         RETURN ARCCOS((periapsisRad*SpeedAtPe())/(rCur*vCur)).
     }
 
@@ -81,23 +88,23 @@ FUNCTION NewOrbitFromKepler
         PARAMETER radius.
         RETURN SQRT(mainBody:MU*((2/radius)-(1/semiMajorAxis))).
     }
-    
-    // Orbit velocity vector at given true anomaly
+
+    // Orbit radius and horizontal and vertical components of speed at given true anomaly
     functionLex:Add("RHV_AtTrueAnomaly", RadiusHorzVertSpeedAtTrueAnomaly@).
     FUNCTION RadiusHorzVertSpeedAtTrueAnomaly
     {
         PARAMETER trueAnomaly.
-        
+
         LOCAL radius IS RadiusAtTrueAnomaly(trueAnomaly).
         LOCAL speed IS SpeedAtRadius(radius).
         LOCAL pitch IS FlightPathAngleFromRV(radius, speed).
-        
+
         IF trueAnomaly > 180
             SET pitch TO -pitch.
-        
+
         RETURN LIST(radius, speed*cos(pitch), speed*sin(pitch)).
     }
-    
+
     // Vector in the direction of the ascending node.
     // In Body-centred SHIP-RAW coordinates.
     functionLex:Add("AscendingNodeAxis", AscendingNodeAxis@).
@@ -105,7 +112,18 @@ FUNCTION NewOrbitFromKepler
     {
         RETURN (AngleAxis(-LAN, y) * SolarPrimeVector):NORMALIZED.
     }
-    
+
+    // Vector in the direction of the ascending node with the specified orbit.
+    // In Body-centred SHIP-RAW coordinates.
+    functionLex:Add("IntersectionAscendingNodeAxis", IntersectionAscendingNodeAxis@).
+    FUNCTION IntersectionAscendingNodeAxis
+    {
+        PARAMETER otherOrbit.
+
+        // I hope this isn't backwards...
+        RETURN vcrs(OrbitAxis(), otherOrbit["OrbitAxis"]()):NORMALIZED.
+    }
+
     // Vector normal to the orbital plane, pointing "up" for a standard prograde orbit.
     // In Body-centred SHIP-RAW coordinates.
     functionLex:Add("OrbitAxis", OrbitAxis@).
@@ -113,69 +131,80 @@ FUNCTION NewOrbitFromKepler
     {
         RETURN (AngleAxis(-inclination, AscendingNodeAxis()) * y):NORMALIZED.
     }
-    
+
     // Unit vector in the radial direction at true anomaly.
     // In Body-centred SHIP-RAW coordinates.
     functionLex:Add("RadialDirectionAtTrueAnomaly", RadialDirectionAtTrueAnomaly@).
     FUNCTION RadialDirectionAtTrueAnomaly
     {
         PARAMETER trueAnomaly.
-        
+
         LOCAL angleFromAN IS -(trueAnomaly+argPeri).
         RETURN (AngleAxis(angleFromAN, OrbitAxis()) * AscendingNodeAxis()):NORMALIZED.
     }
-    
+
+    // The true anomaly of the specified vector projected onto the orbit
+    functionLex:Add("TrueAnomalyOfRadialVector", TrueAnomalyOfRadialVector@).
+    FUNCTION TrueAnomalyOfRadialVector
+    {
+        PARAMETER vec.
+
+		local flatVec is vxcl(OrbitAxis(), vec):NORMALIZED.
+
+        RETURN vang(flatVec, AscendingNodeAxis())-argPeri.
+    }
+
     // Unit vector in the horizontal plane in the prograde direction at true anomaly
     functionLex:Add("ProgradeHorizontalDirectionAtTrueAnomaly", ProgradeHorizontalDirectionAtTrueAnomaly@).
     FUNCTION ProgradeHorizontalDirectionAtTrueAnomaly
     {
         PARAMETER trueAnomaly.
-        
+
         RETURN vcrs(RadialDirectionAtTrueAnomaly(trueAnomaly), OrbitAxis()):NORMALIZED.
     }
-    
+
     // The position vector.
     // In Body-centred SHIP-RAW coordinates.
     functionLex:Add("PositionAtTrueAnomaly", PositionAtTrueAnomaly@).
     FUNCTION PositionAtTrueAnomaly
     {
         PARAMETER trueAnomaly.
-        
+
         RETURN RadialDirectionAtTrueAnomaly(trueAnomaly) * RadiusAtTrueAnomaly(trueAnomaly).
     }
-    
+
     // The velocity vector.
     // In Body-centred SHIP-RAW coordinates.
     functionLex:Add("VelocityAtTrueAnomaly", VelocityAtTrueAnomaly@).
     FUNCTION VelocityAtTrueAnomaly
     {
         PARAMETER trueAnomaly.
-        
+
         LOCAL radius IS RadiusAtTrueAnomaly(trueAnomaly).
         LOCAL speed IS SpeedAtRadius(radius).
         LOCAL pitch IS FlightPathAngleFromRV(radius, speed).
-        
+
         IF trueAnomaly > 180
             SET pitch TO -pitch.
-        
+
         LOCAL localHorizontal IS ProgradeHorizontalDirectionAtTrueAnomaly(trueAnomaly).
-            
+
         RETURN (AngleAxis(pitch, OrbitAxis()) * localHorizontal):NORMALIZED * speed.
     }
-    
+
     // The magnitude of the supplied vessel's position and velocity in the out-of-plane direction
     functionLex:Add("OutOfPlaneRV", OutOfPlaneRV@).
     FUNCTION OutOfPlaneRV
     {
         PARAMETER vessel.
-        
+
         LOCAL oa IS OrbitAxis().
         LOCAL r IS vdot(vessel:UP:FOREVECTOR, oa) * (vessel:Altitude+mainBody:Radius).
         LOCAL v IS vdot(vessel:VELOCITY:ORBIT, oa).
-        
+
         RETURN LIST(r,v).
     }
-    
+
     // True if the ascending node is next one the current vessel will encounter
     functionLex:Add("AscendingNodeNext?", AscendingNodeNext@).
     FUNCTION AscendingNodeNext
@@ -183,9 +212,9 @@ FUNCTION NewOrbitFromKepler
         LOCAL ascNode IS AscendingNodeAxis().
         LOCAL angAsc IS vang(UP:FOREVECTOR, ascNode).
         LOCAL angDsc IS vang(UP:FOREVECTOR, -ascNode).
-        
+
         RETURN angAsc <= angDsc.
     }
-    
+
     return functionLex.
 }

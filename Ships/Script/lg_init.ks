@@ -56,7 +56,7 @@ GLOBAL window is "null".
 GLOBAL matchPlane is true.
 GLOBAL matchArgPeri is true.
 
-LoadAndRun(missionFile, launchFile).
+LoadAndRun(launchFile, missionFile).
 
 PRINT "Done.".
 CLEARSCREEN.
@@ -64,12 +64,10 @@ SET TERMINAL:HEIGHT TO 48.
 SET TERMINAL:WIDTH TO 64.
 PRINT "Commencing launch sequence...".
 
-switch to 0.
-SET logFileName TO ship:name+"-"+missionFile+".csv".
+SET logFileName TO "0:"+ship:name+"-"+missionFile+".csv".
 LOG "" TO logFileName.
-DELETE logFileName.
+DELETEPATH(logFileName).
 LogHeaders().
-switch to 1.
 
 scheduler["WarpToNext"]().
 
@@ -128,7 +126,7 @@ FUNCTION RangeSafetyDestruct
 
 FUNCTION LoadAndRun
 {
-    PARAMETER missionFile, launchFile.
+    PARAMETER launchFile, missionFile.
     
     PRINT "loading "+missionFile.    
     RUNONCEPATH("0:"+missionFile).
@@ -206,8 +204,6 @@ FUNCTION LogData
 
     if Addons:RT:HasKscConnection(SHIP)
     {
-        switch to 0.
         LOG logStr TO logFileName.
-        switch to 1.
     }    
 }

@@ -41,26 +41,28 @@ function postLaunch
     stage.
     rcs on.
     wait 1.
-    maneuver["ClearAllNodes"]().
-    maneuver["ChangeApAtAN"](35786000).
 
     lock throttle to 0.
     wait 0.001.
     upperEngines["Activate"]().
     wait 0.001.
-    
-    local burnTime is upperEngines["TimeToBurnDv"](NextNode:deltaV:mag*0.8).
-    
+
     local ta is 360-ship:orbit:ArgumentOfPeriapsis.
     local radiusAtAN is orbitUtils["RadiusAtTrueAnomaly"](ta,
                                                           ship:orbit:semiMajorAxis,
                                                           ship:orbit:eccentricity).
     set tgtOrbit to NewOrbitFromKepler(body,
-                                         35786000,      // apoapse
-                                         radiusAtAN-body:radius,    // periapse set to the burn radius
-                                         ship:orbit:inclination * 0.8,      // inclination
-                                         ship:orbit:lan,         // lan
-                                         0).            // arg peri - periapse on the equator
+                                       35786000,      // apoapse for GTO
+                                       radiusAtAN-body:radius,    // periapse set to the burn radius
+                                       ship:orbit:inclination * 0.8,      // inclination, slightly flattened
+                                       ship:orbit:lan,         // lan
+                                       0).            // arg peri - periapse at the AN on the equator
+
+    maneuver["ClearAllNodes"]().
+    maneuver["CreateOrbitChangeNode"](tgtOrbit).
+
+	local burnTime is upperEngines["TimeToBurnDv"](NextNode:deltaV:mag*0.8).
+
     maneuver["ScheduleOrbitChange"](scheduler,
                                     launchGuidance,
                                     tgtOrbit,
@@ -82,26 +84,27 @@ function postGto
     clearscreen.
     print "Transferring to GEO..." at (0,0).
     wait 1.
-    maneuver["ClearAllNodes"]().
-    maneuver["ChangePeAtDN"](35786000).
-
     lock throttle to 0.
     wait 0.001.
     upperEngines["Activate"]().
     wait 0.001.
-    
-    local burnTime is upperEngines["TimeToBurnDv"](NextNode:deltaV:mag).
-    
+
     local ta is 180-ship:orbit:ArgumentOfPeriapsis.
     local radiusAtDN is orbitUtils["RadiusAtTrueAnomaly"](ta,
                                                           ship:orbit:semiMajorAxis,
                                                           ship:orbit:eccentricity).
     set tgtOrbit to NewOrbitFromKepler(body,
-                                         radiusAtDN-body:radius,    // apoapsis set to the burn radius
-                                         35786000,      // periapsis
-                                         0,      // inclination
-                                         ship:orbit:lan,         // lan
-                                         0).            // arg peri - periapse on the equator
+                                       radiusAtDN-body:radius,    // apoapsis set to the burn radius
+                                       35786000,      // periapsis
+                                       0,      // inclination
+                                       ship:orbit:lan,         // lan
+                                       0).            // arg peri - periapse on the equator
+
+    maneuver["ClearAllNodes"]().
+    maneuver["CreateOrbitChangeNode"](tgtOrbit).
+
+    local burnTime is upperEngines["TimeToBurnDv"](NextNode:deltaV:mag).
+
     maneuver["ScheduleOrbitChange"](scheduler,
                                     launchGuidance,
                                     tgtOrbit,
