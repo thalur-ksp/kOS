@@ -1,6 +1,7 @@
 // Orbit object and utils
 
 RUNONCEPATH("lib/orbitUtils").
+RUNONCEPATH("lib/maths").
 
 FUNCTION NewOrbitFromKosOrbit
 {
@@ -70,7 +71,7 @@ FUNCTION NewOrbitFromKepler
 		if (rCur = 0 or vCur = 0)
 			Throw("Divide by zero "+round(rCur,2)+", "+round(vCur,2)).
 
-        RETURN ARCCOS((periapsisRad*SpeedAtPe())/(rCur*vCur)).
+        RETURN ARCCOS(CLAMP((periapsisRad*functionLex["speedAtPe"])/(rCur*vCur),-1,1)).
     }
 
     // Orbit radius at the given true anomaly

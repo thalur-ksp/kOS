@@ -1,20 +1,27 @@
 // engine test stand
-RUN ONCE lib_string.
+DECLARE PARAMETER configName.
+//set configName to "test".
 
-PARAMETER configName.
+
+RUNONCEPATH("lib/string").
+RUNONCEPATH("lib/engine").
+
 
 LIST ENGINES IN allEngines.
 
 SET engine TO allEngines[0].
+LOCAL mainEngines IS NewEngineGroup(allEngines,
+                                    SHIP:PartsTagged("mainTank"),
+                                    LIST("Kerosene","LqdOxygen")).
 
 SET situation TO "srf".
 IF SHIP:ALTITUDE > 100000 SET situation TO "vac".
 SET fileName TO engine:title+"-"+configName+"-"+situation+"-engineTest".
 
 LOG "" TO fileName+".csv".
-DELETE fileName+".csv".
+DELETEPATH(fileName+".csv").
 
-LOG "t,thrust,maxThrust,fuelflow,isp,pct,event"+
+LOG "t,thrust,calcThrust,maxThrust,nomThrust,fuelflow,calcFuelFlow,isp,nomIsp,nomExV,TTBurnOut,pct,event"+
     ",title:,"+engine:title TO fileName+".csv".
 
 
@@ -41,14 +48,14 @@ UNTIL (done)
         SET t0 TO TIME:SECONDS.
         SET event TO "activate".
         PRINT "activate".
-        engine:Activate().
+        mainEngines["Activate"]().
         SET hasStarted TO TRUE.
     }
     ELSE IF (met >= 10 AND NOT hasShutDown AND canShutdown)
     {
         SET event TO "shutdown".
         PRINT "shutdown".
-        engine:Shutdown().
+        mainEngines["Shutdown"]().
         SET hasShutDown TO TRUE.
     }
     ELSE IF (hasStarted AND engine:maxthrust = 0 AND engine:thrust = 0)
@@ -61,9 +68,15 @@ UNTIL (done)
     
     LOG ConcatList(LIST(met,
                         engine:thrust,
+						mainEngines["TotalThrust"](),
                         engine:maxThrust,
+						mainEngines["NominalThrust"](1),
                         engine:fuelflow,
+						mainEngines["TotalFuelFlow"](),
                         engine:isp,
+						mainEngines["NominalIsp"](1),
+						mainEngines["NominalExhaustVelocity"](1),
+						mainEngines["TimeToBurnout"](),
                         pct,
                         event)) TO fileName+".csv".
     

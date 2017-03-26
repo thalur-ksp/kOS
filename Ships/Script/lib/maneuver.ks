@@ -2,6 +2,7 @@
 
 RUNONCEPATH("lib/orbitUtils").
 RUNONCEPATH("lib/engine").
+RUNONCEPATH("lib/nodeGuidance").
 
 {
     GLOBAL maneuver is lexicon().
@@ -31,18 +32,25 @@ RUNONCEPATH("lib/engine").
                   guidance,
                   tgtOrbit,
                   timeToNode,
-                  burnTime,
                   engines,
                   nominalThrust,
                   nominalFuelFlow,
                   description,
                   terminalCondition,
                   terminalValue,
-                  mnvCompleteCallback.
+                  mnvCompleteCallback,
+                  limitAngle is 20.
 
+				  
+        ClearAllNodes().
+        CreateOrbitChangeNode(tgtOrbit).
+				  
+        local burnTime is engines["TimeToBurnDv"](NextNode:deltaV:mag/2).
+	
         if timeToNode < 0
             throw("timeToNode must be in the future").
 
+        // activate the engines (at zero throttle) to be able to read some of the stats
         lock throttle to 0.
         wait 0.001.
         engines["Activate"]().
@@ -63,20 +71,22 @@ RUNONCEPATH("lib/engine").
 
         local guideName is "mnvGuide: "+description.
         local termName is "mnvTerm: "+description.
-        guidance["RegisterProgram"](guideName, mnvGuide).
+        
+        local limitedGuide is LimitedGuidance(NextNode:BurnVector:Normalized, mnvGuide, limitAngle).
+        
+        guidance["RegisterProgram"](guideName, limitedGuide).
         guidance["RegisterProgram"](termName,
                         TerminalGuidance(terminalCondition,
                                          terminalValue,
                                          mnv_terminate@)).
 
 
-
         local startTime is timeToNode - burnTime.
         scheduler["schedule"]
-            ("in", startTime -21)("exec", ShutdownEngines@)
-            ("in", startTime -20)("LaunchGuidance_SetProgram", guideName)
+            ("in", startTime -61)("exec", ShutdownEngines@)
+            ("in", startTime -60)("LaunchGuidance_SetProgram", guideName)
                           ("and")("LaunchGuidance_Engage")
-            ("in", startTime -10)("LaunchGuidance_Freeze")
+            ("in", startTime  -2)("LaunchGuidance_Freeze")
             ("in", startTime  -2)("exec", ActivateEngines@)
             ("in", startTime  +2)("LaunchGuidance_Unfreeze")
             ("when", NearBurnout@)("LaunchGuidance_SetProgram", termName).

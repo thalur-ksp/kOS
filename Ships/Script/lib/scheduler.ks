@@ -309,6 +309,18 @@ FUNCTION NewMissionScheduler
         STAGE.
     }
     
+    RegisterAction("rcs on", rcsOn_action@, 0).
+    FUNCTION rcsOn_action
+    {
+        RCS ON.
+    }
+    
+    RegisterAction("rcs off", rcsOff_action@, 0).
+    FUNCTION rcsOff_action
+    {
+        RCS OFF.
+    }
+    
     functionLex:Add("WarpToNext", warpToNext_action@).
     RegisterAction("warpToNext", warpToNext_action@, 0).
     FUNCTION warpToNext_action

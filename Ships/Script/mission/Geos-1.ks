@@ -38,9 +38,6 @@ function postLaunch
     clearscreen.
     print "Transferring to GTO..." at (0,0).
     wait 1.
-    stage.
-    rcs on.
-    wait 1.
 
     lock throttle to 0.
     wait 0.001.
@@ -58,31 +55,28 @@ function postLaunch
                                        ship:orbit:lan,         // lan
                                        0).            // arg peri - periapse at the AN on the equator
 
-    maneuver["ClearAllNodes"]().
-    maneuver["CreateOrbitChangeNode"](tgtOrbit).
-
-	local burnTime is upperEngines["TimeToBurnDv"](NextNode:deltaV:mag*0.8).
-
     maneuver["ScheduleOrbitChange"](scheduler,
                                     launchGuidance,
                                     tgtOrbit,
                                     orbitUtils["TimeToAN"](),
-                                    burnTime,
                                     upperEngines,
                                     upperNominalThrust,
                                     upperNominalFuelFlow,
                                     "GTO",
                                     ByApoapsis@,
                                     35786000,
-                                    postGto@).
+                                    postGto@,
+                                    20).
     scheduler["WarpToNext"]().
 }
 
 function postGto
 {
+    wait 20.
     print beep.
     clearscreen.
     print "Transferring to GEO..." at (0,0).
+    stage.
     wait 1.
     lock throttle to 0.
     wait 0.001.
@@ -100,23 +94,18 @@ function postGto
                                        ship:orbit:lan,         // lan
                                        0).            // arg peri - periapse on the equator
 
-    maneuver["ClearAllNodes"]().
-    maneuver["CreateOrbitChangeNode"](tgtOrbit).
-
-    local burnTime is upperEngines["TimeToBurnDv"](NextNode:deltaV:mag).
-
     maneuver["ScheduleOrbitChange"](scheduler,
                                     launchGuidance,
                                     tgtOrbit,
                                     orbitUtils["TimeToDN"](),
-                                    burnTime,
                                     upperEngines,
                                     upperNominalThrust,
                                     upperNominalFuelFlow,
                                     "GEO",
                                     ByPeriod@,
                                     ((23*60)+56)*60+4,
-                                    postGeo@).
+                                    postGeo@,
+                                    5).
     scheduler["WarpToNext"]().
 }
 

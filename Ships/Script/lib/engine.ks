@@ -273,6 +273,7 @@ FUNCTION NewEngineGroup
                 set cMassRatio to cMassRatio + massRatio.
             }
         }
+		if (cMassRatio = 0) return 0.
         RETURN cThrust/cMassRatio.
     }
     

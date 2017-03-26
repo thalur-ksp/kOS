@@ -1,4 +1,4 @@
-// Beowulf-C
+// Beowulf-C3 (3-stage version)
 
 
 //if not defined window
@@ -20,35 +20,47 @@ LOCAL mainEngines IS NewEngineGroup(SHIP:PartsTagged("mainEngine"),
 LOCAL midEngines IS NewEngineGroup(SHIP:PartsTagged("midEngine"),
                                    SHIP:PartsTagged("midTank"),
                                    LIST("Kerosene","LqdOxygen")).
+
+LOCAL upperEngines IS NewEngineGroup(SHIP:PartsTagged("upperEngine"),
+                                     SHIP:PartsTagged("upperTank"),
+                                     LIST("UDMH","IRFNA-III"),
+                                     SHIP:PartsTagged("upperUlage")).
                                     
-// LOCAL upperEngines IS NewEngineGroup(SHIP:PartsTagged("upperEngine"),
-                                     // SHIP:PartsTagged("upperTank"),
-                                     // LIST("UDMH","IRFNA-III"),
-                                     // SHIP:PartsTagged("upperUlage")).
 
 LOCAL midMaxThrust IS 352200+5114.          // thrust in N
 LOCAL midMaxFuelFlow IS 35.7502+80.4777+0.6742+1.5171. // fuel flow in kg/s
 LOCAL midStageInitialMass IS 25276.    // mass in kg
 
-// LOCAL upperMaxThrust IS 35100.          // thrust in N
-// LOCAL upperMaxFuelFlow IS 3.388+9.4869. // fuel flow in kg/s
-// LOCAL upperStageInitialMass IS 4324.    // mass in kg
+LOCAL upperMaxThrust IS 27146.          // thrust in N
+LOCAL upperMaxFuelFlow IS 3.388+9.4869. // fuel flow in kg/s
+LOCAL upperStageInitialMass IS 4883.    // mass in kg
 
 launchGuidance["RegisterProgram"]("lowerAscent",
                 BasicGuidance(scheduler["tNow"],
                               SqrtPitchProgram(800,70000,2),
                               FixedValueProgram(window["azimuth"]))).
 
-LOCAL iterGuide IS NewIterativeGuidance(tgtOrbit,
-                                        10,	    // terminal guidance freeze time
-                                        mainEngines,
-                                        midEngines,
-                                        midMaxThrust,
-                                        midStageInitialMass,
-                                        midMaxFuelFlow,
-                                        matchPlane,
-                                        matchArgPeri).
-launchGuidance["RegisterProgram"]("closedLoop", iterGuide).
+LOCAL lowerGuide IS NewIterativeGuidance(tgtOrbit,
+                                         10,	    // terminal guidance freeze time
+                                         mainEngines,
+                                         midEngines,
+                                         midMaxThrust,
+                                         midStageInitialMass,
+                                         midMaxFuelFlow,
+                                         matchPlane,
+                                         matchArgPeri).
+launchGuidance["RegisterProgram"]("lowerClosedLoop", lowerGuide).
+
+LOCAL upperGuide IS NewIterativeGuidance(tgtOrbit,
+                                         10,	    // terminal guidance freeze time
+                                         midEngines,
+                                         upperEngines,
+                                         upperMaxThrust,
+                                         upperStageInitialMass,
+                                         upperMaxFuelFlow,
+                                         matchPlane,
+                                         matchArgPeri).
+launchGuidance["RegisterProgram"]("upperClosedLoop", upperGuide).
 
 launchGuidance["RegisterProgram"]("terminal",
                         TerminalGuidance(ByOrbitalEnergy@,
@@ -69,8 +81,8 @@ scheduler["Schedule"]
     ("at",   -0.05)("exec", CheckPrelaunchTWR@)
     ("at",    0)("stage")
     ("at",    5)("LaunchGuidance_Unfreeze")
-    ("at", 1,20)("LaunchGuidance_SetProgram", "closedLoop", 20)
-    ("at", 2,30)("LaunchGuidance_Freeze")    
+    ("at", 1,20)("LaunchGuidance_SetProgram", "lowerClosedLoop", 20)
+    ("at", 2,30)("LaunchGuidance_Freeze")
     ("at", 2,35.5)("exec", SecondStage@).
     
     function SecondStage
@@ -80,7 +92,19 @@ scheduler["Schedule"]
             ("in",    0)("stage")   // separate and ulage
             ("in",    2)("stage")   // ignite
             ("when", AtKarmanLine@)("exec", DitchFairing@)
-            ("in",   5)("LaunchGuidance_Unfreeze")
+            ("in",    5)("LaunchGuidance_Unfreeze")
+            ("in",   20)("LaunchGuidance_SetProgram", "upperClosedLoop", 20)
+            ("in", 4,00)("exec", ThirdStage@).      // 2nd stage burn time is 3:56.9, plus 2 seconds ignition delay and 1 second drift
+    }
+    
+    function ThirdStage
+    {
+        PRINT beep.
+        scheduler["Schedule"]
+            ("in",    0)("stage")   // separate and ulage
+                 ("and")("exec", SetUpperSteering@)
+            ("in",    2)("stage")   // ignite
+            ("in",    5)("LaunchGuidance_Unfreeze")
             ("when", NearBurnout@)("LaunchGuidance_SetProgram", "terminal").
     }
     
@@ -104,9 +128,19 @@ scheduler["Schedule"]
         return Altitude > 100000.
     }
     
+    function S1Burnout
+    {
+        return not mainEngines["AllFiring"]().
+    }
+    
+    function S2Burnout
+    {
+        return not upperEngines["AllFiring"]().
+    }
+    
     function NearBurnout
     {
-        local T2 is iterGuide["T2"]().
+        local T2 is upperGuide["T2"]().
         return T2 >= 0 and T2 < 10.
     }
     
